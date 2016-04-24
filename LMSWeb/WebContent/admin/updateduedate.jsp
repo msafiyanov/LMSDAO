@@ -1,3 +1,4 @@
+<%@ include file="/include.html" %>
 <%@ page language="java" contentType="text/html; charset=ISO-8859-1"
     pageEncoding="ISO-8859-1"%>
     <%@page import="java.util.List" %>
@@ -49,7 +50,7 @@ function updateDueDate(bookId, cardNo, branchId){
 </head>
 ${result}
 <body>
-<button type="submit" onclick="location.href='administrator.html'">Back to Admin</button> </br></br>
+<button type="submit" onclick="location.href='administrator.jsp'">Back to Admin</button> </br></br>
 <table border="3" id="bookLoansTable">
 	<tr>
 		<th>Book Title</th>

@@ -1,3 +1,5 @@
+<%@ include file="/include.html" %>
+
 <!DOCTYPE html>
 <html>
 <head>

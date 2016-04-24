@@ -42,13 +42,35 @@ public class AuthorDAO extends BaseDAO {
 		save("delete from tbl_author where authorId = ?", new Object[] {author.getAuthorId()});
 	}
 	
-	public List<Author> readAllAuthors() throws ClassNotFoundException, SQLException
-	{
+	public List<Author> readAllAuthors(int pageNo, int pageSize) throws ClassNotFoundException, SQLException {
+		setPageNo(pageNo);
+		setPageSize(pageSize);
 		return (List<Author>) readAll("select * from tbl_author", new Object[] {});
 	}
 	
 	public List<Author> readAuthorsByName(String name) throws ClassNotFoundException, SQLException{
-		return (List<Author>) readAll("select * from tbl_author where name like ?", new Object[] {name});
+		return (List<Author>) readAll("select * from tbl_author where authorName like ?", new Object[] {name});
+	}
+	
+	public List<Author> readAuthorsBySearch(String searchString, String searchType, Integer pageNo, Integer pageSize) throws ClassNotFoundException, SQLException {
+		setPageNo(pageNo);
+		setPageSize(pageSize);
+		String query = "select a.authorId, a.authorName from tbl_author as a "
+				+ "inner join tbl_book_authors as ba "
+				+ "on a.authorId = ba.authorId "
+				+ "inner join tbl_book as b "
+				+ "on ba.bookId = b.bookId ";
+		Object[] vals = new Object[] {"%"+searchString+"%"};
+		
+		if (searchType.equals("All")) {
+				query += "where a.authorName like ? OR b.title like ? group by a.authorId";
+				vals = new Object[] {"%"+searchString+"%", "%"+searchString+"%"};
+			}
+		else if (searchType.equals("Books"))
+			query += "where b.title like ? group by a.authorId";
+		else if (searchType.equals("Author Name")) 
+			query += "where a.authorName like ? group by a.authorId";
+		return (List<Author>) readAll(query, vals);
 	}
 	
 	public Author readAuthorByID(Integer authorId) throws ClassNotFoundException, SQLException {
@@ -63,6 +85,10 @@ public class AuthorDAO extends BaseDAO {
 		if (author != null && author.getBooks() != null && author.getBooks().size() > 0)
 			for (Book b: author.getBooks())
 				save("insert into tbl_book_authors (authorId, bookId) values (?,?)", new Object[] {author.getAuthorId(), b.getBookId()});
+	}
+	
+	public Integer getCount() throws ClassNotFoundException, SQLException{
+		return getCount("select count(*) from tbl_author");
 	}
 	
 	@Override

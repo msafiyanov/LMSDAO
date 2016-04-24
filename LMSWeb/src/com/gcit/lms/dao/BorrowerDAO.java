@@ -41,7 +41,9 @@ public class BorrowerDAO extends BaseDAO{
 		save("delete from tbl_borrower where cardNo = ?", new Object[] {bor.getCardNo()});
 	}
 	
-	public List<Borrower> readAllBorrowers() throws ClassNotFoundException, SQLException {
+	public List<Borrower> readAllBorrowers(Integer pageNo, Integer pageSize) throws ClassNotFoundException, SQLException {
+		setPageNo(pageNo);
+		setPageSize(pageSize);
 		return (List<Borrower>) readAll("select * from tbl_borrower", null);
 	}
 
@@ -68,6 +70,10 @@ public class BorrowerDAO extends BaseDAO{
 		return ((List<Borrower>) readAll("select * from tbl_library_branches where branchId IN (select branchId from tbl_book_loans where branchId = ?)", new Object[] {bookLoan.getLibraryBranch().getBranchName()})).get(0);
 	}
 	*/
+	
+	public Integer getCount() throws ClassNotFoundException, SQLException{
+		return getCount("select count(*) from tbl_borrower");
+	}
 	
 	@Override
 	public List<Borrower> extractData(ResultSet rs) throws SQLException {

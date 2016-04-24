@@ -1,3 +1,4 @@
+<%@ include file="/include.html" %>
 <%@ page language="java" contentType="text/html; charset=ISO-8859-1"
     pageEncoding="ISO-8859-1"%>
     <%@page import="java.util.List" %>
@@ -32,7 +33,7 @@
 </head>
 ${result}
 <body>
-<button type="submit" onclick="location.href='librarian.html'">Back to Librarian</button> </br></br>
+<button type="submit" onclick="location.href='librarian.jsp'">Back to Librarian</button> </br></br>
 <table border="3" id="branchesTable">
 	<tr>
 		<th>Branch Name</th>

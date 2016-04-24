@@ -1,3 +1,4 @@
+<%@ include file="/include.html" %>
 <%@ page language="java" contentType="text/html; charset=ISO-8859-1" pageEncoding="ISO-8859-1" %>
     <%@ page import="java.util.List" %>
     <%@ page import="java.util.ArrayList" %>
@@ -15,7 +16,7 @@
 </head>
 ${result}
 <body>
-	<button type="submit" onclick="location.href='administrator.html'">Back to Admin</button> </br></br>
+	<button type="submit" onclick="location.href='administrator.jsp'">Back to Admin</button> </br></br>
 	<form action="addBorrower" method="post">
 		Borrower Name: <input type="text" name="borrowerName"> <br/> </br>
 		Borrower Address: <input type="text" name="borrowerAddress"> <br/> </br>

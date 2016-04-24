@@ -112,7 +112,7 @@ public class LibrarianServlet extends HttpServlet {
 		lb.setBranchAddress(branchAddress);
 		lb.setBranchId(branchId);
 		
-		String returnPath = "/librarian/administrator.html";		
+		String returnPath = "/librarian/administrator.jsp";		
 		String updateBranchResult = "";
 		if (branchName != null && branchName.length() >= 3 && branchName.length() < 45 
 				&& branchAddress != null && branchAddress.length() >= 3 && branchAddress.length() < 45) {

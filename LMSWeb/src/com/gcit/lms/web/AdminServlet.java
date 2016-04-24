@@ -30,7 +30,8 @@ import com.sun.xml.internal.ws.client.RequestContext;
 		"/admin/editAuthor", "/admin/editBook", "/admin/editPublisher", "/admin/editBranch", "/admin/editBorrower", 
 		"/admin/updateAuthor", "/admin/updateBook", "/admin/updatePublisher", "/admin/updateBranch", "/admin/updateBorrower", 
 		"/admin/deleteAuthor", "/admin/deleteBook", "/admin/deletePublisher", "/admin/deleteBranch", "/admin/deleteBorrower",
-		"/admin/updateDueDate" })
+		"/admin/updateDueDate",
+		"/admin/pageAuthors", "/admin/searchAuthors"})
 public class AdminServlet extends HttpServlet {
 	private static final long serialVersionUID = 1L;
 	
@@ -47,7 +48,7 @@ public class AdminServlet extends HttpServlet {
 	 */
 	protected void doGet(HttpServletRequest request, HttpServletResponse response){
 		String requestUrl = request.getRequestURI().substring(request.getContextPath().length(), request.getRequestURI().length());
-		System.out.println(requestUrl);
+		System.out.println("get " + requestUrl);
 		
 		switch (requestUrl) {
 		case "/admin/editAuthor":
@@ -83,6 +84,12 @@ public class AdminServlet extends HttpServlet {
 		case "/admin/updateDueDate":
 			updateDueDate(request, response);
 			break;
+		case "/admin/pageAuthors":
+			pagination(request, response);
+			break;
+		case "/admin/searchAuthors":
+			searchAuthors(request, response);
+			break;
 		default:
 			break;
 		}
@@ -93,10 +100,10 @@ public class AdminServlet extends HttpServlet {
 	 */
 	protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
 		String requestUrl = request.getRequestURI().substring(request.getContextPath().length(), request.getRequestURI().length());
-		System.out.println(requestUrl);
+		System.out.println("post " + requestUrl);
 		
 		switch (requestUrl) {
-		case "/addAuthor":
+		case "/admin/addAuthor":
 			addAuthor(request, response);
 			break;
 		case "/admin/updateAuthor":
@@ -131,9 +138,116 @@ public class AdminServlet extends HttpServlet {
 		}
 		
 	}
-	
-	private void editAuthor(HttpServletRequest request,
+
+	private void searchAuthors(HttpServletRequest request,
 			HttpServletResponse response) {
+		AdministratorService service = new AdministratorService();
+		StringBuilder str = new StringBuilder();
+		String searchString = request.getParameter("searchString");
+		String searchType = request.getParameter("searchType");
+		Integer pageSize = Integer.parseInt(request.getParameter("pageSize"));
+		System.out.println(searchType + " " + searchString + " " + pageSize);
+		List<Author> authors = null;
+		try {
+			authors = service.getAuthorsBySearch(searchString, searchType, 1, pageSize);
+			Integer authorsCount = null;
+			if (authors != null)
+				authorsCount = authors.size();
+			str.append("<nav> <ul class='pagination'> <li><a href='#' aria-label='Previous'> <span aria-hidden='true'>&laquo;</span> </a></li> ");
+			int pages = 0;
+			if (authorsCount != null && authorsCount > 0) { 
+				if (authorsCount % pageSize == 0) { 
+					pages = authorsCount / pageSize; 
+				} else { 
+					pages = authorsCount / pageSize + 1; 
+				} 
+				for (int i = 1; i <= pages; i++) { 
+					str.append("<li><a href=\"javascript:pageAuthors("+i+","+pageSize+")\">"+i+"</a></li>");
+				}  
+			} 
+			str.append("<li><a href='#' aria-label='Next'> <span aria-hidden='true'>&raquo;</span> </a> </ul> </nav>  <div class='row'> <div class='col-md-6'> <table border='3' id='authorsTable' class='table'>");
+		
+			str.append("<tr><th>Author Name</th><th>Book Title</th><th>Edit</th><th>Delete</th></tr>");
+			for(Author a: authors){
+				str.append("<tr><td>"+a.getAuthorName()+"</td><td>");
+				List<Book> books = a.getBooks();
+				if (books != null && books.size() > 0) 
+					for (Book b: books) {
+						str.append(b.getTitle());
+						if (b != books.get(books.size() - 1))
+							str.append(", ");
+					}
+				str.append("<td align='center'><button type='button' class='btn btn btn-primary' data-toggle='modal' data-target='#editAuthor' href=\"editAuthor?authorId=" + a.getAuthorId()+ "\">EDIT</button></td>"
+						+ "<td align=\"center\"><button type=\"button\" class=\"btn btn btn-danger\" onclick=\"deleteAuthor("+a.getAuthorId()+")\">DELETE</button></td></tr>");
+			}
+			str.append("</table> </div> </div>");
+		} catch (ClassNotFoundException | SQLException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}
+		request.setAttribute("authors", authors);
+		//RequestDispatcher rd = request.getRequestDispatcher("/admin/viewauthors.jsp");
+		try {
+			response.getWriter().append(str.toString());
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+
+	private void pagination(HttpServletRequest request, HttpServletResponse response) {
+
+		Integer pageNo = Integer.parseInt(request.getParameter("pageNo"));
+		Integer pageSize = Integer.parseInt(request.getParameter("pageSize"));
+		String dataType = request.getParameter("dataType");
+		
+		StringBuilder str = new StringBuilder();
+		AdministratorService service = new AdministratorService();
+		try {
+			//RequestDispatcher rd;
+			
+			switch (dataType) {
+			case "author":
+				List<Author> authors = service.getAllAuthors(pageNo, pageSize);
+				request.setAttribute("authors", authors);
+				
+				//rd = request.getRequestDispatcher("/admin/viewauthors.jsp");
+				str.append("<tr><th>Author Name</th><th>Book Title</th><th>Edit</th><th>Delete</th></tr>");
+				for(Author a: authors){
+					str.append("<tr><td>"+a.getAuthorName()+"</td><td>");
+					List<Book> books = a.getBooks();
+					if (books != null && books.size() > 0) 
+						for (Book b: books) {
+							str.append(b.getTitle()); 
+							if (b != books.get(books.size() - 1))
+								str.append(", ");
+						}
+					str.append("<td align='center'><button type='button' class='btn btn btn-primary' data-toggle='modal' data-target='#editAuthor' href=\"editAuthor?authorId=" + a.getAuthorId()+ "\">EDIT</button></td>"
+							+ "<td align='center'><button type='button' class='btn btn btn-danger' onclick=\"deleteAuthor("+a.getAuthorId()+")\">DELETE</button></td></tr>");
+				}
+				break;
+			case "book":
+				List<Book> books = service.getAllBooks(pageNo, pageSize);
+				request.setAttribute("books", books);
+				//rd = request.getRequestDispatcher("/admin/viewbooks.jsp");
+			default:
+				break;
+			}
+			
+		} catch (ClassNotFoundException | SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		try {
+			response.getWriter().append(str.toString());
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+
+	}
+	
+	private void editAuthor(HttpServletRequest request,	HttpServletResponse response) {
 		Integer authorId = Integer.parseInt(request.getParameter("authorId"));
 		
 		AdministratorService service = new AdministratorService();
@@ -154,8 +268,7 @@ public class AdminServlet extends HttpServlet {
 		}
 	}
 	
-	private void updateAuthor(HttpServletRequest request,
-			HttpServletResponse response) {
+	private void updateAuthor(HttpServletRequest request, HttpServletResponse response) {
 		Integer authorId = Integer.parseInt(request.getParameter("authorId"));
 		String authorName = request.getParameter("authorName");
 		AdministratorService service = new AdministratorService();
@@ -164,7 +277,7 @@ public class AdminServlet extends HttpServlet {
 		a.setAuthorName(authorName);
 		a.setAuthorId(authorId);
 		
-		String returnPath = "/admin/administrator.html";		
+		String returnPath = "/admin/administrator.jsp";		
 		String deleteAuthorResult = "";
 		if (authorName != null && authorName.length() >= 3 && authorName.length() < 45) {
 			try {
@@ -207,10 +320,13 @@ public class AdminServlet extends HttpServlet {
 		}
 	}
 
-	private void deleteAuthor(HttpServletRequest request,
-			HttpServletResponse response) {
+	private void deleteAuthor(HttpServletRequest request, HttpServletResponse response) {
 		System.out.println("Delete Author.");
 		Integer authorId = Integer.parseInt(request.getParameter("authorId"));
+		Integer pageNo = Integer.parseInt(request.getParameter("pageNo"));
+		Integer pageSize = Integer.parseInt(request.getParameter("pageSize"));
+		
+		System.out.println("Author ID: " + authorId + ". PageNo: " + pageNo + ". PageSize: " + pageSize);
 		AdministratorService service = new AdministratorService();
 		StringBuilder str = new StringBuilder();
 		System.out.println("DELETE AUTHOR. ID: " + authorId );
@@ -221,19 +337,36 @@ public class AdminServlet extends HttpServlet {
 			author = service.getAuthorByID(authorId);
 			if (author != null) {
 				service.deleteAuthor(author);
-				//deleteAuthorResult = "Author deleted successfully";
-				List<Author> authors = service.getAllAuthors();
-				
+				Integer authorsCount = service.getAuthorCount();
+				List<Author> authors = service.getAllAuthors(pageNo, pageSize);
+				str.append("<nav> <ul class='pagination'> <li><a href='#' aria-label='Previous'> <span aria-hidden='true'>&laquo;</span> </a></li> ");
+				if (authorsCount != null && authorsCount > 0) { 
+					int pages = 0; 
+					if (authorsCount % pageSize == 0) { 
+						pages = authorsCount / pageSize; 
+					} else { 
+						pages = authorsCount / pageSize + 1; 
+					} 
+					for (int i = 1; i <= pages; i++) { 
+						str.append("<li><a href=\"javascript:pageAuthors("+i+","+pageSize+")\">"+i+"</a></li>");
+					}  
+				} 
+				str.append("<li><a href='#' aria-label='Next'> <span aria-hidden='true'>&raquo;</span> </a> </ul> </nav>  <div class='row'> <div class='col-md-6'> <table border='3' id='authorsTable' class='table'>");
+			
 				str.append("<tr><th>Author Name</th><th>Book Title</th><th>Edit</th><th>Delete</th></tr>");
 				for(Author a: authors){
 					str.append("<tr><td>"+a.getAuthorName()+"</td><td>");
 					List<Book> books = a.getBooks();
-					if (books != null && books.size() > 0) {
+					if (books != null && books.size() > 0) 
 						for (Book b: books) {
-							str.append("" + b.getTitle() + ", "); } }
-					str.append("</td><td><button type='button' onclick=\"javascript:location.href='editAuthor?authorId="+a.getAuthorId()+"'\">EDIT</button></td>"
-							+ "<td><button type='button' onclick=\"deleteAuthor("+a.getAuthorId()+")\">DELETE</button></td></tr>");
+							str.append(b.getTitle());
+							if (b != books.get(books.size() - 1))
+								str.append(", ");
+						}
+					str.append("<td align='center'><button type='button' class='btn btn btn-primary' data-toggle='modal' data-target='#editAuthor' href=\"editAuthor?authorId=" + a.getAuthorId()+ "\">EDIT</button></td>"
+							+ "<td align=\"center\"><button type=\"button\" class=\"btn btn-sm btn-danger\" onclick=\"deleteAuthor("+a.getAuthorId()+")\">DELETE</button></td></tr>");
 				}
+				str.append("</table> </div> </div>");
 				request.setAttribute("result", "Author deleted sucessfully");
 			} else
 				request.setAttribute("result", "Author delete failed");
@@ -254,7 +387,7 @@ public class AdminServlet extends HttpServlet {
 	private void addAuthor(HttpServletRequest request,
 		HttpServletResponse response) throws ServletException, IOException {
 		AdministratorService service = new AdministratorService();
-		String returnPath = "/admin/administrator.html";
+		String returnPath = "/admin/administrator.jsp";
 		
 		String authorName = request.getParameter("authorName");
 		String addAuthorResult = "";
@@ -294,7 +427,7 @@ public class AdminServlet extends HttpServlet {
 	private void addBook(HttpServletRequest request,
 			HttpServletResponse response) throws ServletException, IOException {
 			AdministratorService service = new AdministratorService();
-			String returnPath = "/admin/administrator.html";
+			String returnPath = "/admin/administrator.jsp";
 			
 			String bookTitle = request.getParameter("bookTitle");
 			String addBookResult = "";
@@ -386,7 +519,7 @@ public class AdminServlet extends HttpServlet {
 		b.setTitle(title);
 		b.setBookId(bookId);
 		
-		String returnPath = "/admin/administrator.html";		
+		String returnPath = "/admin/administrator.jsp";		
 		String updateBookResult = "";
 		if (title != null && title.length() >= 3 && title.length() < 45) {
 			try {
@@ -452,6 +585,9 @@ public class AdminServlet extends HttpServlet {
 	private void deleteBook(HttpServletRequest request,
 			HttpServletResponse response) {
 		int bookId = (int) Integer.parseInt(request.getParameter("bookId"));
+		Integer pageNo = Integer.parseInt(request.getParameter("pageNo"));
+		Integer pageSize = Integer.parseInt(request.getParameter("pageSize"));
+		
 		AdministratorService service = new AdministratorService();
 		StringBuilder str = new StringBuilder();
 		System.out.println("DELETE BOOK. ID: " + bookId );
@@ -462,12 +598,12 @@ public class AdminServlet extends HttpServlet {
 			book = service.getBookByID(bookId);
 			if (book != null) {
 				service.deleteBook(book);
-				List<Book> books = service.getAllBooks();
+				List<Book> books = service.getAllBooks(pageNo, pageSize);
 				
 				str.append("<tr><th>Book Title</th><th>Publisher</th><th>Author Name</th><th>Genre</th><th>Edit</th><th>Delete</th></tr>");
 				for(Book b: books){
 					str.append("<tr><td>"+b.getTitle()+"</td><td>");
-					List<Publisher> publishers = service.getAllPublishers();
+					List<Publisher> publishers = service.getAllPublishers(pageNo, pageSize);
 					if (b.getPublisher() != null)
 						for (Publisher p: publishers)
 							if (p.getPublisherId() == b.getPublisher().getPublisherId()) {
@@ -506,7 +642,7 @@ public class AdminServlet extends HttpServlet {
 	private void addPublisher(HttpServletRequest request,
 			HttpServletResponse response) throws ServletException, IOException {
 		AdministratorService service = new AdministratorService();
-		String returnPath = "/admin/administrator.html";
+		String returnPath = "/admin/administrator.jsp";
 		
 		String publisherName = request.getParameter("publisherName");
 		String publisherAddress = request.getParameter("publisherAddress");
@@ -575,7 +711,7 @@ public class AdminServlet extends HttpServlet {
 		p.setPublisherPhone(publisherPhone);
 		p.setPublisherId(publisherId);
 		
-		String returnPath = "/admin/administrator.html";		
+		String returnPath = "/admin/administrator.jsp";		
 		String updatePublisherResult = "";
 		if (publisherName != null && publisherName.length() >= 3 && publisherName.length() < 45 
 				&& publisherAddress != null && publisherAddress.length() >= 3 && publisherAddress.length() < 45 
@@ -645,6 +781,9 @@ public class AdminServlet extends HttpServlet {
 			HttpServletResponse response) {
 		System.out.println("Delete Publisher.");
 		Integer publisherId = Integer.parseInt(request.getParameter("publisherId"));
+		Integer pageNo = Integer.parseInt(request.getParameter("pageNo"));
+		Integer pageSize = Integer.parseInt(request.getParameter("pageSize"));
+		
 		AdministratorService service = new AdministratorService();
 		StringBuilder str = new StringBuilder();
 		System.out.println("DELETE PUBLISHER. ID: " + publisherId );
@@ -655,7 +794,7 @@ public class AdminServlet extends HttpServlet {
 			publisher = service.getPublisherByID(publisherId);
 			if (publisher != null) {
 				service.deletePublisher(publisher);
-				List<Publisher> publishers = service.getAllPublishers();
+				List<Publisher> publishers = service.getAllPublishers(pageNo, pageSize);
 				
 				str.append("<tr><th>Publisher Name</th><th>Publisher Address</th><th>Publisher Phone</th><th>Books</th><th>Edit</th><th>Delete</th></tr>");
 				
@@ -707,7 +846,7 @@ public class AdminServlet extends HttpServlet {
 		
 		AdministratorService service = new AdministratorService();
 		
-		String returnPath = "/admin/administrator.html";		
+		String returnPath = "/admin/administrator.jsp";		
 		String updateBookResult = "";
 			try {
 				BookLoan bl = service.getBookLoanByAll(bookId, cardNo, branchId);
@@ -752,7 +891,7 @@ public class AdminServlet extends HttpServlet {
 	private void addBranch(HttpServletRequest request,
 			HttpServletResponse response) throws ServletException, IOException {
 		AdministratorService service = new AdministratorService();
-		String returnPath = "/admin/administrator.html";
+		String returnPath = "/admin/administrator.jsp";
 		
 		String branchName = request.getParameter("branchName");
 		String branchAddress = request.getParameter("branchAddress");
@@ -803,7 +942,7 @@ public class AdminServlet extends HttpServlet {
 		lb.setBranchAddress(branchAddress);
 		lb.setBranchId(branchId);
 		
-		String returnPath = "/admin/administrator.html";		
+		String returnPath = "/admin/administrator.jsp";		
 		String updateBranchResult = "";
 		if (branchName != null && branchName.length() >= 3 && branchName.length() < 45 
 				&& branchAddress != null && branchAddress.length() >= 3 && branchAddress.length() < 45) {
@@ -860,6 +999,9 @@ public class AdminServlet extends HttpServlet {
 			HttpServletResponse response) {
 		System.out.println("Delete Library Branch.");
 		Integer branchId = Integer.parseInt(request.getParameter("branchId"));
+		Integer pageNo = Integer.parseInt(request.getParameter("pageNo"));
+		Integer pageSize = Integer.parseInt(request.getParameter("pageSize"));
+		
 		AdministratorService service = new AdministratorService();
 		StringBuilder str = new StringBuilder();
 		System.out.println("DELETE LIBRARY BRANCH. ID: " + branchId );
@@ -870,7 +1012,7 @@ public class AdminServlet extends HttpServlet {
 			libBranch = service.getLibraryBranchByID(branchId);
 			if (libBranch != null) {
 				service.deleteLibraryBranch(libBranch);
-				List<LibraryBranch> libBranches = service.getAllLibraryBranches();
+				List<LibraryBranch> libBranches = service.getAllLibraryBranches(pageNo, pageSize);
 				
 				str.append("<tr><th>Branch Name</th><th>Branch Address</th><th>Edit</th><th>Delete</th></tr>");
 				
@@ -904,7 +1046,7 @@ public class AdminServlet extends HttpServlet {
 	private void addBorrower(HttpServletRequest request,
 			HttpServletResponse response) throws ServletException, IOException {
 		AdministratorService service = new AdministratorService();
-		String returnPath = "/admin/administrator.html";
+		String returnPath = "/admin/administrator.jsp";
 		
 		String borrowerName = request.getParameter("borrowerName");
 		String borrowerAddress = request.getParameter("borrowerAddress");
@@ -960,7 +1102,7 @@ public class AdminServlet extends HttpServlet {
 		b.setBorrowerPhone(borrowerPhone);
 		b.setCardNo(cardNo);
 		
-		String returnPath = "/admin/administrator.html";		
+		String returnPath = "/admin/administrator.jsp";		
 		String updateBorrowerResult = "";
 
 		if (borrowerName != null && borrowerName.length() >= 3 && borrowerName.length() < 45 
@@ -1019,6 +1161,9 @@ public class AdminServlet extends HttpServlet {
 			HttpServletResponse response) {
 		System.out.println("Delete Borrower.");
 		Integer cardNo = Integer.parseInt(request.getParameter("cardNo"));
+		Integer pageNo = Integer.parseInt(request.getParameter("pageNo"));
+		Integer pageSize = Integer.parseInt(request.getParameter("pageSize"));
+		
 		AdministratorService service = new AdministratorService();
 		StringBuilder str = new StringBuilder();
 		System.out.println("DELETE BORROWER. ID: " + cardNo );
@@ -1029,7 +1174,7 @@ public class AdminServlet extends HttpServlet {
 			borrower = service.getBorrowerByID(cardNo);
 			if (borrower != null) {
 				service.deleteBorrower(borrower);
-				List<Borrower> borrowers = service.getAllBorrowers();
+				List<Borrower> borrowers = service.getAllBorrowers(pageNo, pageSize);
 				
 				str.append("<tr><th>Borrower Name</th><th>Borrower Address</th><th>Borrower Phone</th><th>Edit</th><th>Delete</th></tr>");
 				

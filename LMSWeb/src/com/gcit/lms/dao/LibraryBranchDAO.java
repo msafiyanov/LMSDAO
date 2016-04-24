@@ -39,7 +39,9 @@ public class LibraryBranchDAO extends BaseDAO {
 		save("delete from tbl_library_branch where branchName = ? and branchAddress = ?", new Object[] {libraryBranch.getBranchName(), libraryBranch.getBranchAddress()});
 	}
 	
-	public List<LibraryBranch> readAllLibraryBranches() throws ClassNotFoundException, SQLException {
+	public List<LibraryBranch> readAllLibraryBranches(Integer pageNo, Integer pageSize) throws ClassNotFoundException, SQLException {
+		setPageNo(pageNo);
+		setPageSize(pageSize);
 		return (List<LibraryBranch>) readAll("select * from tbl_library_branch", null);
 	}
 
@@ -67,6 +69,10 @@ public class LibraryBranchDAO extends BaseDAO {
 		return ((List<LibraryBranch>) readAll("select * from tbl_library_branch where branchId IN "
 										+	" (select branchId from tbl_book_loans where branchId = ?)", new Object[] {bookLoan.getLibraryBranch().getBranchName()})).get(0);
 	}*/
+	
+	public Integer getCount() throws ClassNotFoundException, SQLException{
+		return getCount("select count(*) from tbl_library_branch");
+	}
 	
 	@Override
 	public List<LibraryBranch> extractData(ResultSet rs) throws SQLException {

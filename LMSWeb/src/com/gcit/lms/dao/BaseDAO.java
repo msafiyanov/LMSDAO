@@ -18,6 +18,8 @@ import java.util.List;
 public abstract class BaseDAO {
 	
 	private Connection conn;
+	private Integer pageNo;
+	private Integer pageSize;
 	
 	public BaseDAO(Connection conn) {
 		this.conn = conn;
@@ -27,6 +29,34 @@ public abstract class BaseDAO {
 		return conn;
 	}
 	
+	/**
+	 * @return the pageNo
+	 */
+	public int getPageNo() {
+		return pageNo;
+	}
+
+	/**
+	 * @param pageNo the pageNo to set
+	 */
+	public void setPageNo(int pageNo) {
+		this.pageNo = pageNo;
+	}
+
+	/**
+	 * @return the pageSize
+	 */
+	public int getPageSize() {
+		return pageSize;
+	}
+
+	/**
+	 * @param pageSize the pageSize to set
+	 */
+	public void setPageSize(int pageSize) {
+		this.pageSize = pageSize;
+	}
+
 	public void save(String query, Object[] vals) throws ClassNotFoundException, SQLException {
 		Connection conn = getConnection();
 		PreparedStatement pstmt = conn.prepareStatement(query);
@@ -79,8 +109,17 @@ public abstract class BaseDAO {
 	public List<?> readAll(String query, Object[] vals) throws ClassNotFoundException, SQLException
 	{
 		Connection conn = getConnection();
-		PreparedStatement pstmt = conn.prepareStatement(query);
+		if (pageSize == null || pageSize < 1)
+			pageSize = 10;
 		
+		if (pageNo != null && pageNo > 0)
+			query += " LIMIT " + (pageNo - 1) * pageSize + ", " + pageSize;
+		else
+			query += " LIMIT " + "0, " + pageSize; 
+			
+		
+		PreparedStatement pstmt = conn.prepareStatement(query);
+				
 		int count = 0;
 		if (vals != null)
 			for (Object o: vals) {
